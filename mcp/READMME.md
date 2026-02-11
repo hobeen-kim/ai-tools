@@ -29,7 +29,7 @@ OpenCode 설정 파일(`opencode.json`/`opencode.jsonc`)의 `mcp`에 서버를 �
         "MY_ENV": "{env:MY_ENV}"
       },
       "enabled": true,
-      "timeout": 5000
+      "timeout": 10000
     }
   }
 }
