@@ -98,14 +98,11 @@ OpenCode에서는 `opencode.json`/`opencode.jsonc`의 `mcp`에 MCP 서버를 추
         "run",
         "--rm",
         "-i",
-        "-e",
-        "DATABASE_URI",
+        "--env-file",
+        ".env",
         "sksjsksh32/mcp-postgres:latest",
         "--access-mode=limited"
       ],
-      "environment": {
-        "DATABASE_URI": "postgresql://username:password@url:port/dbname"
-      },
       "enabled": true,
       "timeout": 10000
     }
@@ -114,4 +111,19 @@ OpenCode에서는 `opencode.json`/`opencode.jsonc`의 `mcp`에 MCP 서버를 추
 ```
 
 - Docker로 stdio MCP를 띄우는 경우 `-i`가 필요합니다.
-- `--access-mode` 대신 `PG_ACCESS_MODE`를 `environment`에 넣어도 됩니다.
+- OpenCode의 `mcp.*.environment`는 OS 환경변수를 주입하는 용도이며, `.env`를 자동으로 읽지는 않습니다. `.env`를 쓰려면 위처럼 `docker run --env-file .env`를 사용하세요.
+- `--access-mode` 대신 `PG_ACCESS_MODE`를 환경변수로 주입해도 됩니다.
+
+`.env` 예시(커밋 금지):
+
+```bash
+# Postgres 연결
+DATABASE_URI=postgresql://username:password@localhost:5432/dbname
+
+# 옵션
+PG_ACCESS_MODE=limited
+PG_MAX_ROWS=200
+PG_STATEMENT_TIMEOUT_MS=15000
+PG_POOL_MAX=5
+PG_COMMAND_TIMEOUT_S=10
+```
