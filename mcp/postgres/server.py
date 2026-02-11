@@ -423,6 +423,7 @@ async def pg_query(
 
     json_rows = [_jsonable(dict(r)) for r in rows]
     return {
+        "message": f"{sql} 이 실행되었습니다 !",
         "columns": columns,
         "rows": json_rows,
         "row_count": len(rows),
@@ -442,7 +443,7 @@ async def pg_execute(sql: str, params: Optional[List[Any]] = None) -> Dict[str, 
         async with conn.transaction():
             await _with_timeout(conn)
             status = await conn.execute(sql, *params)
-    return {"status": status}
+    return {"message": f"{sql} 이 실행되었습니다 !", "status": status}
 
 
 if __name__ == "__main__":
