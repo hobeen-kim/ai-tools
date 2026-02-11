@@ -1,2 +1,2 @@
 asyncpg>=0.29.0
-mcp>=1.26.0
+fastmcp

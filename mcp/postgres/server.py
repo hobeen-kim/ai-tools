@@ -9,7 +9,7 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 import asyncpg
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 
 mcp = FastMCP(
@@ -309,7 +309,7 @@ def _enforce_access_policy(sql: str, tool_name: str) -> None:
     raise ValueError(f"Unknown access mode: {mode!r}")
 
 
-@mcp.tool(description="DB 연결 및 서버 버전/DB명 확인", structured_output=False)
+@mcp.tool(description="DB 연결 및 서버 버전/DB명 확인")
 async def pg_healthcheck() -> str:
     """DB 연결 및 서버 버전 확인"""
 
@@ -323,7 +323,7 @@ async def pg_healthcheck() -> str:
 
 
 @mcp.tool(
-    description="information_schema 기반 스키마 목록 조회", structured_output=False
+    description="information_schema 기반 스키마 목록 조회"
 )
 async def pg_list_schemas() -> str:
     """스키마 목록"""
@@ -342,7 +342,7 @@ async def pg_list_schemas() -> str:
     return _to_json_text([r["schema_name"] for r in rows])
 
 
-@mcp.tool(description="지정 스키마의 테이블/뷰 목록 조회", structured_output=False)
+@mcp.tool(description="지정 스키마의 테이블/뷰 목록 조회")
 async def pg_list_tables(schema: str = "public") -> str:
     """테이블/뷰 목록"""
 
@@ -372,7 +372,7 @@ async def pg_list_tables(schema: str = "public") -> str:
 
 
 @mcp.tool(
-    description="지정 테이블의 컬럼/타입/NULL/기본값 조회", structured_output=False
+    description="지정 테이블의 컬럼/타입/NULL/기본값 조회"
 )
 async def pg_describe_table(schema: str, table: str) -> str:
     """테이블 컬럼/타입/널 가능/기본값"""
@@ -411,7 +411,6 @@ async def pg_describe_table(schema: str, table: str) -> str:
 
 @mcp.tool(
     description="쿼리 실행(결과 행 반환). access-mode 정책 적용, 기본 row limit 적용",
-    structured_output=False,
 )
 async def pg_query(
     sql: str, params: Optional[List[Any]] = None, limit: Optional[int] = None
@@ -457,7 +456,7 @@ async def pg_query(
 
 
 @mcp.tool(
-    description="쿼리 실행(상태 반환). access-mode 정책 적용", structured_output=False
+    description="쿼리 실행(상태 반환). access-mode 정책 적용"
 )
 async def pg_execute(sql: str, params: Optional[List[Any]] = None) -> str:
     """INSERT/UPDATE/DDL 등 실행 (access-mode에 따라 제한)"""
