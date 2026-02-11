@@ -37,7 +37,7 @@
 - `@mcp.tool()`로 도구를 노출한다.
 - 연결 정보는 환경변수로만 받는다(예: `DATABASE_URL`).
 - 반환값은 JSON 직렬화 가능한 타입으로 변환한다(날짜/decimal/bytes 등).
-- 위험한 도구(삭제/DDL/쓰기)는 기본 차단하고, `ALLOW_WRITE=true` 같은 env로만 활성화한다.
+- 위험한 도구(삭제/DDL/쓰기)는 기본 차단하고, `--access-mode` 또는 `PG_ACCESS_MODE` 같은 명시적 설정으로만 활성화한다.
 
 템플릿(개념):
 
@@ -93,6 +93,8 @@ ENTRYPOINT ["python", "/app/server.py"]
 - "클라이언트가 어떻게 이 서버를 실행하는지" 설정 예시(예: `command: docker`, `args: [run, ...]`)
 
 특히 Docker 실행은 stdio이므로 `docker run -i`가 필요하다는 점을 명시한다.
+
+권한 제어가 필요한 MCP라면, `readonly`/`limited`/`unrestricted`처럼 단계적인 access-mode를 제공하고 README에 정책을 명확히 적는다.
 
 ### 6) 검증(최소)
 
