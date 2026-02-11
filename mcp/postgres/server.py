@@ -1,6 +1,7 @@
 import asyncio
 import argparse
 import base64
+import json
 import os
 import re
 from datetime import date, datetime, time
@@ -127,6 +128,10 @@ def _jsonable(value: Any) -> Any:
         return [_jsonable(v) for v in value]
 
     return str(value)
+
+
+def _to_json_text(value: Any) -> str:
+    return json.dumps(_jsonable(value), ensure_ascii=False)
 
 
 async def _with_timeout(conn: asyncpg.Connection) -> None:
@@ -301,8 +306,8 @@ def _enforce_access_policy(sql: str, tool_name: str) -> None:
     raise ValueError(f"Unknown access mode: {mode!r}")
 
 
-@mcp.tool(description="DB 연결 및 서버 버전/DB명 확인")
-async def pg_healthcheck() -> Dict[str, Any]:
+@mcp.tool(description="DB 연결 및 서버 버전/DB명 확인", structured_output=False)
+async def pg_healthcheck() -> str:
     """DB 연결 및 서버 버전 확인"""
 
     pool = await _get_pool()
@@ -311,11 +316,13 @@ async def pg_healthcheck() -> Dict[str, Any]:
             await _with_timeout(conn)
             version = await conn.fetchval("select version()")
             current_db = await conn.fetchval("select current_database()")
-    return {"ok": True, "database": current_db, "version": version}
+    return _to_json_text({"ok": True, "database": current_db, "version": version})
 
 
-@mcp.tool(description="information_schema 기반 스키마 목록 조회")
-async def pg_list_schemas() -> List[str]:
+@mcp.tool(
+    description="information_schema 기반 스키마 목록 조회", structured_output=False
+)
+async def pg_list_schemas() -> str:
     """스키마 목록"""
 
     sql = """
@@ -329,11 +336,11 @@ async def pg_list_schemas() -> List[str]:
         async with conn.transaction():
             await _with_timeout(conn)
             rows = await conn.fetch(sql)
-    return [r["schema_name"] for r in rows]
+    return _to_json_text([r["schema_name"] for r in rows])
 
 
-@mcp.tool(description="지정 스키마의 테이블/뷰 목록 조회")
-async def pg_list_tables(schema: str = "public") -> List[Dict[str, Any]]:
+@mcp.tool(description="지정 스키마의 테이블/뷰 목록 조회", structured_output=False)
+async def pg_list_tables(schema: str = "public") -> str:
     """테이블/뷰 목록"""
 
     sql = """
@@ -349,14 +356,22 @@ async def pg_list_tables(schema: str = "public") -> List[Dict[str, Any]]:
             await _with_timeout(conn)
             rows = await conn.fetch(sql, schema)
 
-    return [
-        {"schema": r["table_schema"], "name": r["table_name"], "type": r["table_type"]}
-        for r in rows
-    ]
+    return _to_json_text(
+        [
+            {
+                "schema": r["table_schema"],
+                "name": r["table_name"],
+                "type": r["table_type"],
+            }
+            for r in rows
+        ]
+    )
 
 
-@mcp.tool(description="지정 테이블의 컬럼/타입/NULL/기본값 조회")
-async def pg_describe_table(schema: str, table: str) -> List[Dict[str, Any]]:
+@mcp.tool(
+    description="지정 테이블의 컬럼/타입/NULL/기본값 조회", structured_output=False
+)
+async def pg_describe_table(schema: str, table: str) -> str:
     """테이블 컬럼/타입/널 가능/기본값"""
 
     sql = """
@@ -377,24 +392,27 @@ async def pg_describe_table(schema: str, table: str) -> List[Dict[str, Any]]:
             await _with_timeout(conn)
             rows = await conn.fetch(sql, schema, table)
 
-    return [
-        {
-            "name": r["column_name"],
-            "type": r["data_type"],
-            "nullable": r["is_nullable"] == "YES",
-            "default": _jsonable(r["column_default"]),
-            "position": r["ordinal_position"],
-        }
-        for r in rows
-    ]
+    return _to_json_text(
+        [
+            {
+                "name": r["column_name"],
+                "type": r["data_type"],
+                "nullable": r["is_nullable"] == "YES",
+                "default": _jsonable(r["column_default"]),
+                "position": r["ordinal_position"],
+            }
+            for r in rows
+        ]
+    )
 
 
 @mcp.tool(
-    description="쿼리 실행(결과 행 반환). access-mode 정책 적용, 기본 row limit 적용"
+    description="쿼리 실행(결과 행 반환). access-mode 정책 적용, 기본 row limit 적용",
+    structured_output=False,
 )
 async def pg_query(
     sql: str, params: Optional[List[Any]] = None, limit: Optional[int] = None
-) -> Dict[str, Any]:
+) -> str:
     """SELECT 등 결과 행이 있는 쿼리 실행 (기본 row limit 적용)"""
 
     _enforce_access_policy(sql, tool_name="pg_query")
@@ -424,17 +442,21 @@ async def pg_query(
         columns = list(rows[0].keys())
 
     json_rows = [_jsonable(dict(r)) for r in rows]
-    return {
-        "message": f"{sql} 이 실행되었습니다 !",
-        "columns": columns,
-        "rows": json_rows,
-        "row_count": len(rows),
-        "truncated": truncated,
-    }
+    return _to_json_text(
+        {
+            "message": f"{sql} 이 실행되었습니다 !",
+            "columns": columns,
+            "rows": json_rows,
+            "row_count": len(rows),
+            "truncated": truncated,
+        }
+    )
 
 
-@mcp.tool(description="쿼리 실행(상태 반환). access-mode 정책 적용")
-async def pg_execute(sql: str, params: Optional[List[Any]] = None) -> Dict[str, Any]:
+@mcp.tool(
+    description="쿼리 실행(상태 반환). access-mode 정책 적용", structured_output=False
+)
+async def pg_execute(sql: str, params: Optional[List[Any]] = None) -> str:
     """INSERT/UPDATE/DDL 등 실행 (access-mode에 따라 제한)"""
 
     _enforce_access_policy(sql, tool_name="pg_execute")
@@ -445,7 +467,7 @@ async def pg_execute(sql: str, params: Optional[List[Any]] = None) -> Dict[str, 
         async with conn.transaction():
             await _with_timeout(conn)
             status = await conn.execute(sql, *params)
-    return {"message": f"{sql} 이 실행되었습니다 !", "status": status}
+    return _to_json_text({"message": f"{sql} 이 실행되었습니다 !", "status": status})
 
 
 if __name__ == "__main__":
