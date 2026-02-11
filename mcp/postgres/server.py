@@ -230,33 +230,29 @@ def _ensure_single_statement(sql_for_policy: str) -> str:
 
 def _require_where_for_update_delete(sql_for_policy_lower: str) -> None:
     lowered = sql_for_policy_lower
-    update_idx = lowered.find("update")
-    delete_idx = lowered.find("delete")
 
-    def has_word_at(idx: int, word: str) -> bool:
-        if idx < 0:
-            return False
-        before_ok = idx == 0 or not lowered[idx - 1].isalnum()
-        after = idx + len(word)
-        after_ok = after >= len(lowered) or not lowered[after].isalnum()
-        return before_ok and after_ok
+    # In limited mode, UPDATE/DELETE must include WHERE.
+    # Ignore DDL FK actions like: "... ON DELETE CASCADE" / "... ON UPDATE ...".
+    for m in re.finditer(r"\b(update|delete)\b", lowered):
+        kind = m.group(1)
+        start = m.start(1)
 
-    first_kind = None
-    first_idx = None
-    if has_word_at(update_idx, "update"):
-        first_kind, first_idx = "update", update_idx
-    if has_word_at(delete_idx, "delete"):
-        if first_idx is None or delete_idx < first_idx:
-            first_kind, first_idx = "delete", delete_idx
+        j = start - 1
+        while j >= 0 and lowered[j].isspace():
+            j -= 1
+        prev_end = j + 1
+        while j >= 0 and (lowered[j].isalnum() or lowered[j] == "_"):
+            j -= 1
+        prev_word = lowered[j + 1 : prev_end]
+        if prev_word == "on":
+            continue
 
-    if first_kind is None or first_idx is None:
+        tail = lowered[start:]
+        if " where " not in tail and not tail.endswith(" where"):
+            raise PermissionError(
+                f"{kind.upper()} requires a WHERE clause in limited access mode."
+            )
         return
-
-    tail = lowered[first_idx:]
-    if " where " not in tail and not tail.endswith(" where"):
-        raise PermissionError(
-            f"{first_kind.upper()} requires a WHERE clause in limited access mode."
-        )
 
 
 def _enforce_access_policy(sql: str, tool_name: str) -> None:
@@ -308,6 +304,7 @@ def _enforce_access_policy(sql: str, tool_name: str) -> None:
 
     raise ValueError(f"Unknown access mode: {mode!r}")
 
+
 @mcp.tool(description="DB 연결 및 서버 버전/DB명 확인", structured_output=True)
 async def pg_healthcheck() -> Dict[str, Any]:
     pool = await _get_pool()
@@ -319,7 +316,9 @@ async def pg_healthcheck() -> Dict[str, Any]:
     return {"ok": True, "database": current_db, "version": version}
 
 
-@mcp.tool(description="information_schema 기반 스키마 목록 조회", structured_output=True)
+@mcp.tool(
+    description="information_schema 기반 스키마 목록 조회", structured_output=True
+)
 async def pg_list_schemas() -> List[str]:
     sql = """
         select schema_name
@@ -356,7 +355,9 @@ async def pg_list_tables(schema: str = "public") -> List[Dict[str, Any]]:
     ]
 
 
-@mcp.tool(description="지정 테이블의 컬럼/타입/NULL/기본값 조회", structured_output=True)
+@mcp.tool(
+    description="지정 테이블의 컬럼/타입/NULL/기본값 조회", structured_output=True
+)
 async def pg_describe_table(schema: str, table: str) -> List[Dict[str, Any]]:
     sql = """
         select
@@ -429,7 +430,9 @@ async def pg_query(
     }
 
 
-@mcp.tool(description="쿼리 실행(상태 반환). access-mode 정책 적용", structured_output=True)
+@mcp.tool(
+    description="쿼리 실행(상태 반환). access-mode 정책 적용", structured_output=True
+)
 async def pg_execute(sql: str, params: Optional[List[Any]] = None) -> Dict[str, Any]:
     _enforce_access_policy(sql, tool_name="pg_execute")
 
