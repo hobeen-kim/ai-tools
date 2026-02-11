@@ -13,6 +13,7 @@
 
 - 언어: Python
 - 트랜스포트: stdio (MCP 클라이언트가 프로세스를 스폰하는 방식)
+- 모든 MCP는 `EXPOSE` boolean 환경변수를 지원해야 한다. `EXPOSE=true`인 경우 `streamable-http` 트랜스포트로 실행 가능해야 한다.
 - 의존성: `mcp`(Python SDK) + 대상 시스템 클라이언트 라이브러리
 - 쓰기 작업이 가능한 도구는 기본 비활성화(명시적 env로만 허용)
 
@@ -38,6 +39,7 @@
 - 연결 정보는 환경변수로만 받는다(예: `DATABASE_URL`).
 - 반환값은 JSON 직렬화 가능한 타입으로 변환한다(날짜/decimal/bytes 등).
 - 위험한 도구(삭제/DDL/쓰기)는 기본 차단하고, `--access-mode` 또는 `PG_ACCESS_MODE` 같은 명시적 설정으로만 활성화한다.
+- `EXPOSE=true`이면 `mcp.run(transport="streamable-http", host=..., port=...)`로 실행하고, 기본은 `mcp.run()`(stdio)로 실행한다.
 
 템플릿(개념):
 
@@ -51,7 +53,13 @@ def healthcheck():
     return {"ok": True}
 
 if __name__ == "__main__":
-    mcp.run()
+    expose = os.getenv("EXPOSE", "").strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+    if expose:
+        host = os.getenv("HOST", "0.0.0.0")
+        port = int(os.getenv("PORT", "8000"))
+        mcp.run(transport="streamable-http", host=host, port=port)
+    else:
+        mcp.run()
 ```
 
 ### 3) requirements.txt 작성
@@ -71,6 +79,7 @@ asyncpg>=0.29.0
 - 베이스 이미지: `python:3.12-slim` 권장
 - `requirements.txt` 설치 후 `server.py` 실행
 - stdio 기반이므로 포트 노출은 기본적으로 불필요
+- `EXPOSE=true`로 HTTP 트랜스포트를 사용할 계획이면, 런타임에서 `-p <host_port>:<PORT>`로 포트를 매핑한다
 
 템플릿:
 
