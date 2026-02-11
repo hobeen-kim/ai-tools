@@ -71,7 +71,14 @@ def _build_dsn() -> str:
     auth = user
     if password:
         auth = f"{user}:{password}"
-    return f"postgresql://{auth}@{host}:{port}/{db}"
+
+    base = f"postgresql://{auth}@{host}:{port}/{db}"
+    pgoption = (os.getenv("PGOPTION") or "").strip()
+    if pgoption.startswith("?"):
+        pgoption = pgoption[1:]
+    if pgoption:
+        return f"{base}?{pgoption}"
+    return base
 
 
 async def _get_pool() -> asyncpg.Pool:

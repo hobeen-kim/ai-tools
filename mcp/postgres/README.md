@@ -16,6 +16,7 @@ PostgreSQL에 연결해서 스키마/테이블 정보를 조회하거나 SQL을 
 연결 설정:
 
 - `PGHOST`, `PGPORT`(기본 5432), `PGDATABASE`, `PGUSER`, `PGPASSWORD`(옵션)
+- `PGOPTION` (옵션) - DSN query string에 그대로 붙임 (예: `sslmode=require`)
 
 동작 옵션
 
@@ -121,6 +122,10 @@ PGPORT=5432
 PGDATABASE=dbname
 PGUSER=username
 PGPASSWORD=password
+
+# 연결 옵션(옵션): DSN의 ? 뒤에 그대로 붙습니다.
+# 예: sslmode=require
+PGOPTION=sslmode=require
 
 # 옵션
 PG_ACCESS_MODE=limited
