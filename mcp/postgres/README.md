@@ -104,7 +104,7 @@ OpenCode에서는 `opencode.json`/`opencode.jsonc`의 `mcp`에 MCP 서버를 추
         "--access-mode=limited"
       ],
       "environment": {
-        "DATABASE_URI": "{env:DATABASE_URI}"
+        "DATABASE_URI": "postgresql://username:password@url:port/dbname"
       },
       "enabled": true,
       "timeout": 5000
