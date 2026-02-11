@@ -13,11 +13,7 @@ PostgreSQL에 연결해서 스키마/테이블 정보를 조회하거나 SQL을 
 
 ## 환경변수(세팅)
 
-권장:
-
-- `DATABASE_URL` 또는 `DATABASE_URI` 예: `postgresql://user:pass@host:5432/dbname`
-
-대안:
+연결 설정:
 
 - `PGHOST`, `PGPORT`(기본 5432), `PGDATABASE`, `PGUSER`, `PGPASSWORD`(옵션)
 
@@ -66,7 +62,7 @@ docker build -t mcp-postgres:local .
 
 ```bash
 docker run --rm -i \
-  -e DATABASE_URI='postgresql://user:pass@host:5432/dbname' \
+  --env-file .env \
   mcp-postgres:local --access-mode=readonly
 ```
 
@@ -76,7 +72,7 @@ docker run --rm -i \
 
 ```bash
 docker run --rm -i \
-  -e DATABASE_URI='postgresql://user:pass@host.docker.internal:5432/dbname' \
+  --env-file .env \
   mcp-postgres:local --access-mode=readonly
 ```
 
@@ -102,7 +98,8 @@ OpenCode에서는 `opencode.json`/`opencode.jsonc`의 `mcp`에 MCP 서버를 추
         "--env-file",
         ".env",
         "sksjsksh32/mcp-postgres:latest",
-        "--access-mode=limited"
+        "--access-mode=limited",
+        "--max-rows=200"
       ],
       "enabled": true,
       "timeout": 10000
@@ -119,7 +116,11 @@ OpenCode에서는 `opencode.json`/`opencode.jsonc`의 `mcp`에 MCP 서버를 추
 
 ```bash
 # Postgres 연결
-DATABASE_URI=postgresql://username:password@host.docker.internal:5432/dbname
+PGHOST=host.docker.internal
+PGPORT=5432
+PGDATABASE=dbname
+PGUSER=username
+PGPASSWORD=password
 
 # 옵션
 PG_ACCESS_MODE=limited
@@ -133,3 +134,11 @@ PG_COMMAND_TIMEOUT_S=10
 # HOST=0.0.0.0
 # PORT=8000
 ```
+
+파라미터로도 오버라이드 가능:
+
+- `--max-rows=<int>`
+- `--statement-timeout-ms=<int>`
+- `--pool-max=<int>`
+- `--command-timeout-s=<int>`
+- `--expose` / `--http-host=<host>` / `--http-port=<port>`

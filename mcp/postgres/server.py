@@ -57,10 +57,6 @@ def _env_int(name: str, default: int) -> int:
 
 
 def _build_dsn() -> str:
-    dsn = os.getenv("DATABASE_URL") or os.getenv("DATABASE_URI")
-    if dsn:
-        return dsn
-
     host = os.getenv("PGHOST")
     db = os.getenv("PGDATABASE")
     user = os.getenv("PGUSER")
@@ -69,7 +65,7 @@ def _build_dsn() -> str:
 
     if not (host and db and user):
         raise RuntimeError(
-            "Missing database config. Set DATABASE_URL (or DATABASE_URI), or set PGHOST/PGDATABASE/PGUSER(/PGPASSWORD/PGPORT)."
+            "Missing database config. Set PGHOST/PGDATABASE/PGUSER(/PGPASSWORD/PGPORT)."
         )
 
     auth = user
@@ -478,15 +474,34 @@ if __name__ == "__main__":
         default=None,
         help="readonly(default), limited, or unrestricted",
     )
+
+    parser.add_argument("--max-rows", type=int, default=None)
+    parser.add_argument("--statement-timeout-ms", type=int, default=None)
+    parser.add_argument("--pool-max", type=int, default=None)
+    parser.add_argument("--command-timeout-s", type=int, default=None)
+
+    parser.add_argument("--expose", action="store_true")
+    parser.add_argument("--http-host", type=str, default=None)
+    parser.add_argument("--http-port", type=int, default=None)
+
     args, _unknown = parser.parse_known_args()
 
     if args.access_mode:
         _set_access_mode(args.access_mode)
 
-    expose = _env_bool("EXPOSE", False)
+    if args.max_rows is not None:
+        os.environ["PG_MAX_ROWS"] = str(args.max_rows)
+    if args.statement_timeout_ms is not None:
+        os.environ["PG_STATEMENT_TIMEOUT_MS"] = str(args.statement_timeout_ms)
+    if args.pool_max is not None:
+        os.environ["PG_POOL_MAX"] = str(args.pool_max)
+    if args.command_timeout_s is not None:
+        os.environ["PG_COMMAND_TIMEOUT_S"] = str(args.command_timeout_s)
+
+    expose = args.expose or _env_bool("EXPOSE", False)
     if expose:
-        host = os.getenv("HOST", "0.0.0.0")
-        port = _env_int("PORT", 8000)
+        host = args.http_host or os.getenv("HOST", "0.0.0.0")
+        port = args.http_port if args.http_port is not None else _env_int("PORT", 8000)
         mcp.run(transport="streamable-http", host=host, port=port)
     else:
         mcp.run()
