@@ -13,15 +13,11 @@ PostgreSQL에 연결해서 스키마/테이블 정보를 조회하거나 SQL을 
 
 ## 환경변수(세팅)
 
-권장: `DATABASE_URL` 하나로 설정
+권장:
 
-- `DATABASE_URL` (권장) 예: `postgresql://user:pass@host:5432/dbname`
+- `DATABASE_URL` 또는 `DATABASE_URI` 예: `postgresql://user:pass@host:5432/dbname`
 
-호환(alias):
-
-- `DATABASE_URI` - `DATABASE_URL` 대신 사용 가능
-
-대안: 아래 조합으로도 가능
+대안:
 
 - `PGHOST`, `PGPORT`(기본 5432), `PGDATABASE`, `PGUSER`, `PGPASSWORD`(옵션)
 
@@ -49,7 +45,12 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r mcp/postgres/requirements.txt
 
-export DATABASE_URL='postgresql://user:pass@localhost:5432/dbname'
+export PGHOST=host.docker.internal
+export PGDATABASE=dbname
+export PGUSER=username
+export PGPASSWORD=password
+export PGPORT=5432
+
 python3 mcp/postgres/server.py
 ```
 
@@ -65,7 +66,7 @@ docker build -t mcp-postgres:local .
 
 ```bash
 docker run --rm -i \
-  -e DATABASE_URL='postgresql://user:pass@host:5432/dbname' \
+  -e DATABASE_URI='postgresql://user:pass@host:5432/dbname' \
   mcp-postgres:local --access-mode=readonly
 ```
 
@@ -75,7 +76,7 @@ docker run --rm -i \
 
 ```bash
 docker run --rm -i \
-  -e DATABASE_URL='postgresql://user:pass@host.docker.internal:5432/dbname' \
+  -e DATABASE_URI='postgresql://user:pass@host.docker.internal:5432/dbname' \
   mcp-postgres:local --access-mode=readonly
 ```
 
@@ -118,7 +119,7 @@ OpenCode에서는 `opencode.json`/`opencode.jsonc`의 `mcp`에 MCP 서버를 추
 
 ```bash
 # Postgres 연결
-DATABASE_URI=postgresql://username:password@localhost:5432/dbname
+DATABASE_URI=postgresql://username:password@host.docker.internal:5432/dbname
 
 # 옵션
 PG_ACCESS_MODE=limited
@@ -126,4 +127,9 @@ PG_MAX_ROWS=200
 PG_STATEMENT_TIMEOUT_MS=15000
 PG_POOL_MAX=5
 PG_COMMAND_TIMEOUT_S=10
+
+# (선택) HTTP로 노출해서 쓰는 경우에만
+# EXPOSE=true
+# HOST=0.0.0.0
+# PORT=8000
 ```
