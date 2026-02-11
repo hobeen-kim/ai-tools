@@ -483,4 +483,10 @@ if __name__ == "__main__":
     if args.access_mode:
         _set_access_mode(args.access_mode)
 
-    mcp.run()
+    expose = _env_bool("EXPOSE", False)
+    if expose:
+        host = os.getenv("HOST", "0.0.0.0")
+        port = _env_int("PORT", 8000)
+        mcp.run(transport="streamable-http", host=host, port=port)
+    else:
+        mcp.run()
